@@ -1,0 +1,10 @@
+{
+    "name": "wayland-scanner-d",
+    "description": "A wayland protocol scanner for D.",
+    "copyright": "Copyright (c) 2015, remi.thebault",
+    "license": "MIT",
+    "authors": ["remi.thebault"],
+    "dependencies": {
+    },
+    "targetType": "executable"
+}

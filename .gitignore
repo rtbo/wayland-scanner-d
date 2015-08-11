@@ -1,0 +1,13 @@
+## dub
+.dub
+docs.json
+__dummy.html
+*.o
+*.obj
+
+# Dolphin FM
+.directory
+
+## this repo
+wayland-scanner-d
+dub.selections.json
