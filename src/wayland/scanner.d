@@ -1,5 +1,5 @@
 /+
- +  Copyright © 2015 Rémi Thebault
+ +  Copyright © 2015-2016 Rémi Thebault
  +
  +  Permission is hereby granted, free of charge, to any person
  +  obtaining a copy of this software and associated documentation files
