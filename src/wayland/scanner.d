@@ -31,8 +31,6 @@ import std.stdio;
 import std.getopt;
 import std.array;
 
-
-
 int main(string[] args)
 {
     auto opt = new Options;
@@ -76,7 +74,7 @@ int main(string[] args)
 
     if (opt.ifaces_priv && !opt.ifaces_priv_mod.empty && !opt.module_name.empty) {
         stderr.writeln("interface priv module name must be specified either by -m"
-                        " of by --ifaces_priv_mod");
+                        ~ " of by --ifaces_priv_mod");
         return 1;
     }
 
@@ -238,7 +236,7 @@ struct Enum
         if (description)
             description.printOut(output, indent);
 
-        auto entriesDoc = entriesHaveDoc();
+        immutable entriesDoc = entriesHaveDoc();
         if (entriesDoc) {
             string docComment;
             foreach(e; entries) {
@@ -276,17 +274,35 @@ struct Arg {
         name = el.getAttribute("name");
         summary = el.getAttribute("summary");
         iface = el.getAttribute("interface");
+        switch (el.getAttribute("type"))
         {
-            auto typestr = el.getAttribute("type");
-            if (typestr == "int") type = ArgType.Int;
-            else if (typestr == "uint") type = ArgType.UInt;
-            else if (typestr == "fixed") type = ArgType.Fixed;
-            else if (typestr == "string") type = ArgType.String;
-            else if (typestr == "object") type = ArgType.Object;
-            else if (typestr == "new_id") type = ArgType.NewId;
-            else if (typestr == "array") type = ArgType.Array;
-            else if (typestr == "fd") type = ArgType.Fd;
-            else enforce(false, "unknown type");
+            case "int":
+                type = ArgType.Int;
+                break;
+            case "uint":
+                type = ArgType.UInt;
+                break;
+            case "fixed":
+                type = ArgType.Fixed;
+                break;
+            case "string":
+                type = ArgType.String;
+                break;
+            case "object":
+                type = ArgType.Object;
+                break;
+            case "new_id":
+                type = ArgType.NewId;
+                break;
+            case "array":
+                type = ArgType.Array;
+                break;
+            case "fd":
+                type = ArgType.Fd;
+                break;
+            default:
+                enforce(false, "unknown type");
+                break;
         }
     }
 
@@ -400,7 +416,7 @@ struct Message
             if (args[i].type == ArgType.NewId) {
                 if (ret) {
                     stderr.writefln(
-                        "message '%s.%s' has more than one new_id arg\n"
+                        "message '%s.%s' has more than one new_id arg\n" ~
                         "not emitting stub", iface_name, name);
                     return;
                 }
@@ -424,7 +440,7 @@ struct Message
         }
 
         string code = format(
-                "extern (D) %s\n"
+                "extern (D) %s\n" ~
                 "%s_%s(%s *%s_", rettype, iface_name, name,
                 iface_name, iface_name);
         foreach (arg; args) {
@@ -490,7 +506,7 @@ struct Message
     void printEventWrapperOut(File output, int indent)
     {
         string code = format(
-                "extern (D) void\n"
+                "extern (D) void\n" ~
                 "%s_send_%s(wl_resource *res", iface_name, name);
 
         foreach (arg; args) {
@@ -507,8 +523,8 @@ struct Message
             code ~= arg.d_name;
         }
 
-        code ~= format(")\n"
-            "{\n"
+        code ~= format(")\n"    ~
+            "{\n"               ~
             "    wl_resource_post_event(res, %s", opCodeSym);
         foreach (arg; args) {
             code ~= format(", %s", arg.d_name);
@@ -567,8 +583,6 @@ struct Interface
 
     void printOutClientCode(File output, int indent)
     {
-        auto iStr = indentStr(indent);
-
         if (haveListener) {
             // listener struct
             if (description) description.printOut(output, indent);
@@ -581,14 +595,14 @@ struct Interface
 
             // add listener method
             output.printCode(format(
-                "extern (D) int\n"
-                "%s_add_listener(%s *%s,\n"
-                "                const(%s_listener) *listener, void *data)\n"
-                "{\n"
-                "    alias Callback = extern (C) void function();\n\n"
-                "    return wl_proxy_add_listener(\n"
-                "            cast(wl_proxy*)%s,\n"
-                "            cast(Callback*)listener, data);\n"
+                "extern (D) int\n"                                              ~
+                "%s_add_listener(%s *%s,\n"                                     ~
+                "                const(%s_listener) *listener, void *data)\n"   ~
+                "{\n"                                                           ~
+                "    alias Callback = extern (C) void function();\n\n"          ~
+                "    return wl_proxy_add_listener(\n"                           ~
+                "            cast(wl_proxy*)%s,\n"                              ~
+                "            cast(Callback*)listener, data);\n"                 ~
                 "}",
                 name, name, name, name, name), indent);
             output.writeln();
@@ -604,17 +618,17 @@ struct Interface
 
         // write user data getter and setter
         output.printCode(format(
-            "extern (D) void\n"
-            "%s_set_user_data(%s *%s, void *user_data)\n"
-            "{\n"
-            "    wl_proxy_set_user_data(cast(wl_proxy*) %s, user_data);\n"
+            "extern (D) void\n"                                             ~
+            "%s_set_user_data(%s *%s, void *user_data)\n"                   ~
+            "{\n"                                                           ~
+            "    wl_proxy_set_user_data(cast(wl_proxy*) %s, user_data);\n"  ~
             "}", name, name, name, name), indent);
         output.writeln();
         output.printCode(format(
-            "extern (D) void *\n"
-            "%s_get_user_data(%s *%s)\n"
-            "{\n"
-            "    return wl_proxy_get_user_data(cast(wl_proxy*) %s);\n"
+            "extern (D) void *\n"                                       ~
+            "%s_get_user_data(%s *%s)\n"                                ~
+            "{\n"                                                       ~
+            "    return wl_proxy_get_user_data(cast(wl_proxy*) %s);\n"  ~
             "}", name, name, name, name), indent);
         output.writeln();
 
@@ -628,10 +642,10 @@ struct Interface
 
         if (!hasDestroy && name != "wl_display") {
             output.printCode(format(
-                "extern (D) void\n"
-                "%s_destroy(%s *%s)\n"
-                "{\n"
-                "    wl_proxy_destroy(cast(wl_proxy*) %s);\n"
+                "extern (D) void\n"                             ~
+                "%s_destroy(%s *%s)\n"                          ~
+                "{\n"                                           ~
+                "    wl_proxy_destroy(cast(wl_proxy*) %s);\n"   ~
                 "}", name, name, name, name), indent);
             output.writeln();
         }
@@ -645,7 +659,6 @@ struct Interface
 
     void printOutServerCode(File output, int indent)
     {
-        auto iStr = indentStr(indent);
         if (haveInterface) {
             // interface struct
             if (description) description.printOut(output, indent);
@@ -739,8 +752,8 @@ struct Protocol
             name.capitalize, mode);
 
         code ~=
-            "    this (string libName) {\n"
-            "        super(libName);\n"
+            "    this (string libName) {\n" ~
+            "        super(libName);\n"     ~
             "    }\n";
 
         code ~= "    protected override void loadSymbols() {\n";
@@ -761,7 +774,7 @@ struct Protocol
             output.printComment("Protocol copyright:\n"~copyright);
         }
         output.printComment(
-                "D bindings copyright:\n"
+                "D bindings copyright:\n"       ~
                 "Copyright © 2015 Rémi Thebault");
         output.printComment(
                 "    File generated by wayland-scanner-d:\n" ~
@@ -830,8 +843,8 @@ struct Protocol
 
                 foreach (iface; ifaces) {
                     string code = format(
-                        "@property wl_interface *%s_interface() {\n"
-                        "    return %s_if_ptr;\n"
+                        "@property wl_interface *%s_interface() {\n"    ~
+                        "    return %s_if_ptr;\n"                       ~
                         "}", iface.name, iface.name);
                     output.printCode(code, 1);
                 }
@@ -845,8 +858,8 @@ struct Protocol
 
                 foreach (iface; ifaces) {
                     string code = format(
-                        "@property wl_interface *%s_interface() {\n"
-                        "    return &priv.%s_interface;\n"
+                        "@property wl_interface *%s_interface() {\n"    ~
+                        "    return &priv.%s_interface;\n"              ~
                         "}", iface.name, iface.name);
                     output.printCode(code, 1);
                 }
@@ -857,11 +870,6 @@ struct Protocol
     }
 }
 
-
-public bool isNotWhite(Char)(Char c)
-{
-    return !c.isWhite;
-}
 
 string getElText(Element el)
 {
@@ -876,12 +884,14 @@ string getElText(Element el)
     string offset;
     bool offsetdone = false;
     foreach (l; fulltxt.split('\n')) {
-        bool allwhite = l.all!isWhite;
+        immutable bool allwhite = l.all!isWhite;
         if (!offsetdone && allwhite) continue;
 
         if (!offsetdone && !allwhite) {
             offsetdone = true;
-            offset = l.until!isNotWhite.to!string;
+            offset = l
+                    .until!(c => !c.isWhite)
+                    .to!string;
         }
 
         if (l.startsWith(offset)) {
