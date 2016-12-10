@@ -21,8 +21,6 @@
  +  ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  +  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  +  SOFTWARE.
- +//+
-
  +/
 /+
  +  A lot of code in this module is inspired by the wayland C scanner
@@ -34,25 +32,6 @@ import std.getopt;
 import std.array;
 
 
-private class Options {
-    string cmdline;
-
-    string in_file;
-    string out_file;
-    string module_name;
-
-    bool client_mode;
-    bool server_mode;
-
-    bool protocol_code;
-    bool ifaces_code;
-    bool ifaces_priv;
-    string ifaces_priv_mod;
-
-    string[] priv_modules;
-    string[] pub_modules;
-}
-
 
 int main(string[] args)
 {
@@ -62,12 +41,11 @@ int main(string[] args)
 
     auto opt_handler = getopt(
             args,
-            "input|i", "input file [defaults to stdin]", &opt.in_file,
-            "output|o", "output file [defaults to stdout]", &opt.out_file,
-            "module|m", "D module name [required]", &opt.module_name,
+            "input|i", "input file [stdin]", &opt.in_file,
+            "output|o", "output file [stdout]", &opt.out_file,
+            "module|m", "D module name (required)", &opt.module_name,
 
-            "client", "client mode", &opt.client_mode,
-            "server", "server mode", &opt.server_mode,
+            "mode",     "output mode (client or server) [client]", &opt.mode,
 
             "protocol", "outputs main protocol code", &opt.protocol_code,
             "ifaces", "outputs interfaces code", &opt.ifaces_code,
@@ -83,12 +61,6 @@ int main(string[] args)
         defaultGetoptPrinter("A Wayland protocol scanner and D code generator",
                 opt_handler.options);
         return 0;
-    }
-
-    if ((opt.client_mode && opt.server_mode) ||
-            (!opt.client_mode && !opt.server_mode)) {
-        stderr.writeln("must specify either client or server mode");
-        return 1;
     }
 
     if ((opt.protocol_code && opt.ifaces_code) ||
@@ -117,7 +89,8 @@ int main(string[] args)
         return 1;
     }
 
-    try {
+    try
+    {
         File input = (opt.in_file.empty) ? stdin : File(opt.in_file, "r");
         File output = (opt.out_file.empty) ? stdout : File(opt.out_file, "w");
 
@@ -135,7 +108,8 @@ int main(string[] args)
 
         p.printOut(output, opt);
     }
-    catch (Exception ex) {
+    catch (Exception ex)
+    {
         stderr.writeln("Error occured:\n", ex.toString());
         return 1;
     }
@@ -153,6 +127,30 @@ import std.algorithm;
 import std.conv;
 import std.format;
 import std.string;
+
+enum OutputMode
+{
+    client,
+    server,
+}
+
+class Options {
+    string cmdline;
+
+    string in_file;
+    string out_file;
+    string module_name;
+
+    OutputMode mode;
+
+    bool protocol_code;
+    bool ifaces_code;
+    bool ifaces_priv;
+    string ifaces_priv_mod;
+
+    string[] priv_modules;
+    string[] pub_modules;
+}
 
 
 enum ArgType {
@@ -690,11 +688,14 @@ struct Interface
     {
         printOutEnumCode(output, indent);
 
-        if (opt.client_mode) {
-            printOutClientCode(output, indent);
-        }
-        if (opt.server_mode) {
-            printOutServerCode(output, indent);
+        final switch (opt.mode)
+        {
+            case OutputMode.client:
+                printOutClientCode(output, indent);
+                break;
+            case OutputMode.server:
+                printOutServerCode(output, indent);
+                break;
         }
     }
 
@@ -728,9 +729,9 @@ struct Protocol
     }
 
 
-    void printLoaderOut(File output, Options opt, int indent) {
-
-        string mode = opt.server_mode?"Server":"Client";
+    void printLoaderOut(File output, Options opt, int indent)
+    {
+        string mode = (opt.mode == OutputMode.server) ? "Server" : "Client";
 
         string code = "import derelict.util.loader;\n\n";
 
@@ -768,7 +769,7 @@ struct Protocol
 
         output.writeln("module ", opt.module_name, ";\n");
 
-        string mode = opt.client_mode ? "client" : "server";
+        string mode = (opt.mode == OutputMode.server) ? "server" : "client";
 
         output.writeln(format("import wayland.%s.util;", mode));
         output.writeln(format("import wayland.%s.opaque_types;", mode));
