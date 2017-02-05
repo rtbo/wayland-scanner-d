@@ -1,6 +1,9 @@
 wayland-scanner-d
 ======
 
+Project not maintained anymore.
+Superseded by the [wayland-d](https://github.com/rtbo/wayland-d.git) project.
+
 Wayland protocol scanner that generates D code.
 
 Example of client code generation:
